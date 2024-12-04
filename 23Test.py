@@ -18,36 +18,24 @@ def _parse_update_category(self, target_ocr_data: dict):
     raw_values = self.get_keywords(target_ocr_data, *value_box, '.+')
     self.syslogger.info(f'Raw values: {raw_values}')
 
-    # 垂直合併邏輯
+    # 分組邏輯
+    grouped_values = self.group_ocr_anchor_list(
+        raw_values, threshold=15, method='average', group_way='y')
+    self.syslogger.info(f'Grouped values: {grouped_values}')
+
+    # 合併每組中的文本框
     merged_values = []
-    skip_indexes = set()
-
-    for i, (text1, anchor1) in enumerate(raw_values):
-        if i in skip_indexes:
-            continue
-
-        combined_text = text1
-        combined_anchor = deepcopy(anchor1)
-
-        for j, (text2, anchor2) in enumerate(raw_values):
-            if j <= i or j in skip_indexes:
-                continue
-
-            # 判斷是否應垂直合併（考慮 y 軸接近且 x 軸重疊）
-            if abs(anchor1.btm - anchor2.top) < anchor1.hgt * 0.5 and \
-               (anchor1.lft < anchor2.rgt and anchor2.lft < anchor1.rgt):
-                combined_text += f" {text2}"
-                combined_anchor.merge(anchor2)
-                skip_indexes.add(j)
-
-        merged_values.append((combined_text.strip(), combined_anchor))
+    for group in grouped_values:
+        if len(group) > 1:
+            merged_text, merged_anchor = self.merge_boxes(group)
+            merged_values.append((merged_text.strip(), merged_anchor))
+        else:
+            merged_values.append(group[0])  # 單一元素直接加入
 
     self.syslogger.info(f'Merged values: {merged_values}')
 
     # 處理檢驗項目
     item_box = (0, self.hgt, 0, value_title_anchor.lft)
-    detected_keys = set()  # 用於追蹤已檢測到的欄位
-
     for key, keyinfo in self.retData.get_all_api_key_and_info():
         if keyinfo.regex is None:
             continue
@@ -61,18 +49,11 @@ def _parse_update_category(self, target_ocr_data: dict):
                             exam_title_anchor}')
 
         if exam_title_str is not None:
-            detected_keys.add(key)  # 記錄已檢測到的欄位
-
             # 選擇最接近的值
             exam_value_str, exam_value_anchor = self.map_closest_value_of_title_by_y_axis(
                 exam_title_anchor, merged_values, thresh=exam_title_anchor.hgt
             )
-            keyinfo.value = exam_value_str
-            keyinfo.rectangle = Rectangle.from_anchor(exam_value_anchor)
-            self.syslogger.info(f'Final value for {key}: {keyinfo.value}')
-
-    # 移除未檢測到的欄位（未出現在圖片中的欄位）
-    for key, keyinfo in self.retData.get_all_api_key_and_info():
-        if key not in detected_keys:
-            keyinfo.value = None
-            self.syslogger.info(f'{key} not detected, skipping.')
+            if exam_value_str:  # 確保有找到匹配的值
+                keyinfo.value = exam_value_str
+                keyinfo.rectangle = Rectangle.from_anchor(exam_value_anchor)
+                self.syslogger.info(f'Final value for {key}: {keyinfo.value}')
