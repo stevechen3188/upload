@@ -46,6 +46,8 @@ def _parse_update_category(self, target_ocr_data: dict):
 
     # 處理檢驗項目
     item_box = (0, self.hgt, 0, value_title_anchor.lft)
+    detected_keys = set()  # 用於追蹤已檢測到的欄位
+
     for key, keyinfo in self.retData.get_all_api_key_and_info():
         if keyinfo.regex is None:
             continue
@@ -59,6 +61,8 @@ def _parse_update_category(self, target_ocr_data: dict):
                             exam_title_anchor}')
 
         if exam_title_str is not None:
+            detected_keys.add(key)  # 記錄已檢測到的欄位
+
             # 選擇最接近的值
             exam_value_str, exam_value_anchor = self.map_closest_value_of_title_by_y_axis(
                 exam_title_anchor, merged_values, thresh=exam_title_anchor.hgt
@@ -67,9 +71,8 @@ def _parse_update_category(self, target_ocr_data: dict):
             keyinfo.rectangle = Rectangle.from_anchor(exam_value_anchor)
             self.syslogger.info(f'Final value for {key}: {keyinfo.value}')
 
-    # 保留未匹配項目的預設值
+    # 移除未檢測到的欄位（未出現在圖片中的欄位）
     for key, keyinfo in self.retData.get_all_api_key_and_info():
-        if not keyinfo.value:  # 如果欄位沒有值
-            keyinfo.value = "-"
-            self.syslogger.info(f'Default value set for {
-                                key}: {keyinfo.value}')
+        if key not in detected_keys:
+            keyinfo.value = None
+            self.syslogger.info(f'{key} not detected, skipping.')
