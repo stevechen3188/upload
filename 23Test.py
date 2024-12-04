@@ -15,7 +15,7 @@ def _parse_update_category(self, target_ocr_data: dict):
                  value_title_anchor.lft, value_title_anchor.rgt)
 
     # 提取 "檢驗結果" 右側所有值
-    raw_values = self.get_keywords(target_ocr_data, *value_box, '.+')
+    raw_values = self.get_keywords(target_ocr_data, *value_box, r'.+')
     self.syslogger.info(f'Raw values: {raw_values}')
 
     # 分組邏輯
@@ -23,14 +23,15 @@ def _parse_update_category(self, target_ocr_data: dict):
         raw_values, threshold=15, method='average', group_way='y')
     self.syslogger.info(f'Grouped values: {grouped_values}')
 
-    # 合併每組中的文本框
+    # 垂直合併邏輯
     merged_values = []
     for group in grouped_values:
         if len(group) > 1:
             merged_text, merged_anchor = self.merge_boxes(group)
             merged_values.append((merged_text.strip(), merged_anchor))
         else:
-            merged_values.append(group[0])  # 單一元素直接加入
+            # 單一元素也加入，保留原始值（包括 "-"）
+            merged_values.append(group[0])
 
     self.syslogger.info(f'Merged values: {merged_values}')
 
