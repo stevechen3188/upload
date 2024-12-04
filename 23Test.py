@@ -33,8 +33,9 @@ def _parse_update_category(self, target_ocr_data: dict):
             if j <= i or j in skip_indexes:
                 continue
 
-            # 判斷是否應垂直合併
-            if abs(anchor1.btm - anchor2.top) < anchor1.hgt * 0.5:
+            # 判斷是否應垂直合併（考慮 y 軸接近且 x 軸重疊）
+            if abs(anchor1.btm - anchor2.top) < anchor1.hgt * 0.5 and \
+               (anchor1.lft < anchor2.rgt and anchor2.lft < anchor1.rgt):
                 combined_text += f" {text2}"
                 combined_anchor.merge(anchor2)
                 skip_indexes.add(j)
@@ -65,3 +66,10 @@ def _parse_update_category(self, target_ocr_data: dict):
             keyinfo.value = exam_value_str
             keyinfo.rectangle = Rectangle.from_anchor(exam_value_anchor)
             self.syslogger.info(f'Final value for {key}: {keyinfo.value}')
+
+    # 保留未匹配項目的預設值
+    for key, keyinfo in self.retData.get_all_api_key_and_info():
+        if not keyinfo.value:  # 如果欄位沒有值
+            keyinfo.value = "-"
+            self.syslogger.info(f'Default value set for {
+                                key}: {keyinfo.value}')
