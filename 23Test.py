@@ -30,30 +30,41 @@ def _parse_update_category(self, target_ocr_data: dict):
         if item_label is not None:  # 如果找到該檢測項目名稱
             keyinfo.default_enable = True  # 將該項目標記為啟用
 
-        # 設置範圍
-        if key in ["transparency", "hbeag", "hbsag"]:  # 特殊處理項目
-            new_item_box = (
-                item_label_anchor.btm,
-                item_label_anchor.btm + item_label_anchor.hgt,
-                item_label_anchor.lft - item_label_anchor.wid / 10,
-                item_label_anchor.rgt
-            )
-            next_item_label, next_item_label_anchor = self.get_keyword(
-                target_ocr_data, *new_item_box, r".+")
-
-            # 判斷是否需要抓取第二行
-            if next_item_label is not None and next_item_label_anchor:  # 存在下一行
-                value_box = (
-                    max(0, item_label_anchor.top -
-                        item_label_anchor.hgt * 0.25),
-                    min(self.hgt, next_item_label_anchor.btm +
-                        item_label_anchor.hgt * 0.25),
-                    max(0, value_title_anchor.lft -
-                        value_title_anchor.wid * 0.2),
-                    min(self.wid, value_title_anchor.rgt +
-                        value_title_anchor.wid * 0.2)
+            # 設置範圍
+            if key in ["transparency", "hbeag", "hbsag"]:  # 特殊處理項目
+                new_item_box = (
+                    item_label_anchor.btm,
+                    item_label_anchor.btm + item_label_anchor.hgt,
+                    item_label_anchor.lft - item_label_anchor.wid / 10,
+                    item_label_anchor.rgt
                 )
-            else:  # 沒有第二行，只抓取當前行
+                next_item_label, next_item_label_anchor = self.get_keyword(
+                    target_ocr_data, *new_item_box, r".+")
+
+                # 判斷是否需要擴大範圍
+                if next_item_label is None:  # 沒有下一行
+                    value_box = (
+                        max(0, item_label_anchor.top -
+                            item_label_anchor.hgt * 0.25),
+                        min(self.hgt, item_label_anchor.btm +
+                            item_label_anchor.hgt * 2),
+                        max(0, value_title_anchor.lft -
+                            value_title_anchor.wid * 0.2),
+                        min(self.wid, value_title_anchor.rgt +
+                            value_title_anchor.wid * 0.2)
+                    )
+                else:  # 有下一行，只抓一行
+                    value_box = (
+                        max(0, item_label_anchor.top -
+                            item_label_anchor.hgt * 0.25),
+                        min(self.hgt, item_label_anchor.btm +
+                            item_label_anchor.hgt * 0.25),
+                        max(0, value_title_anchor.lft -
+                            value_title_anchor.wid * 0.2),
+                        min(self.wid, value_title_anchor.rgt +
+                            value_title_anchor.wid * 0.2)
+                    )
+            else:  # 一般項目
                 value_box = (
                     max(0, item_label_anchor.top -
                         item_label_anchor.hgt * 0.25),
@@ -64,15 +75,6 @@ def _parse_update_category(self, target_ocr_data: dict):
                     min(self.wid, value_title_anchor.rgt +
                         value_title_anchor.wid * 0.2)
                 )
-        else:  # 一般項目
-            value_box = (
-                max(0, item_label_anchor.top - item_label_anchor.hgt * 0.25),
-                min(self.hgt, item_label_anchor.btm +
-                    item_label_anchor.hgt * 0.25),
-                max(0, value_title_anchor.lft - value_title_anchor.wid * 0.2),
-                min(self.wid, value_title_anchor.rgt +
-                    value_title_anchor.wid * 0.2)
-            )
 
             self.syslogger.debug(f'\n[{self.img_name}] value_box for key {
                                  key}: {value_box}')
@@ -83,13 +85,8 @@ def _parse_update_category(self, target_ocr_data: dict):
                                        key} in value_box: {value_box}')
                 continue
 
-            # 檢查合併的值是否過長
+            # 合併值
             exam_value_str, exam_value_anchor = self.merge_boxes(values)
-            if len(exam_value_str) > 50:  # 假設長度超過 50 表示異常
-                self.syslogger.warning(f'\n[{self.img_name}] Value too long for key {
-                                       key}: {exam_value_str}')
-                continue
-
             self.syslogger.debug(f'\n[{self.img_name}] Merged value: {
                                  exam_value_str}, anchor: {exam_value_anchor}')
             if not exam_value_str or not exam_value_anchor:
