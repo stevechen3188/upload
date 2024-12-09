@@ -34,39 +34,32 @@ def _parse_update_category(self, target_ocr_data: dict):
             if key in ["transparency", "hbeag", "hbsag"]:  # 特殊處理項目
                 new_item_box = (
                     item_label_anchor.btm,
-                    min(item_label_anchor.btm +
-                        item_label_anchor.hgt * 2, self.hgt),
+                    item_label_anchor.btm + item_label_anchor.hgt,
                     item_label_anchor.lft - item_label_anchor.wid / 10,
                     item_label_anchor.rgt
                 )
                 next_item_label, next_item_label_anchor = self.get_keyword(
                     target_ocr_data, *new_item_box, r".+")
-                if next_item_label is not None and next_item_label_anchor:
+                if next_item_label is not None and next_item_label_anchor:  # 存在第二行
                     value_box = (
                         item_label_anchor.top,
                         next_item_label_anchor.btm,
-                        max(value_title_anchor.lft -
-                            value_title_anchor.wid * 0.2, 0),
-                        min(value_title_anchor.rgt +
-                            value_title_anchor.wid * 0.2, self.wid)
+                        value_title_anchor.lft,
+                        value_title_anchor.rgt
                     )
-                else:
+                else:  # 沒有第二行
                     value_box = (
                         item_label_anchor.top,
-                        min(item_label_anchor.btm +
-                            item_label_anchor.hgt * 2, self.hgt),
-                        max(value_title_anchor.lft -
-                            value_title_anchor.wid * 0.2, 0),
-                        min(value_title_anchor.rgt +
-                            value_title_anchor.wid * 0.2, self.wid)
+                        item_label_anchor.btm,
+                        value_title_anchor.lft,
+                        value_title_anchor.rgt
                     )
             else:  # 一般項目
                 value_box = (
                     item_label_anchor.top,
                     item_label_anchor.btm,
-                    max(value_title_anchor.lft - value_title_anchor.wid * 0.2, 0),
-                    min(value_title_anchor.rgt +
-                        value_title_anchor.wid * 0.2, self.wid)
+                    value_title_anchor.lft,
+                    value_title_anchor.rgt
                 )
 
             self.syslogger.debug(f'\n[{self.img_name}] value_box for key {
@@ -88,7 +81,7 @@ def _parse_update_category(self, target_ocr_data: dict):
                 continue
 
             # 更新檢測項目值
-            keyinfo.value = exam_value_str.strip()  # 去掉多餘空白
+            keyinfo.value = exam_value_str
             keyinfo.rectangle = Rectangle.from_anchor(exam_value_anchor)
             self.syslogger.info(f'\n[{self.img_name}] Final value for {
                                 key}: {keyinfo.value}')
