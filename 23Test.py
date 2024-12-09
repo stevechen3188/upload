@@ -42,24 +42,36 @@ def _parse_update_category(self, target_ocr_data: dict):
                     target_ocr_data, *new_item_box, r".+")
                 if next_item_label is not None and next_item_label_anchor:  # 存在第二行
                     value_box = (
-                        item_label_anchor.top,
-                        next_item_label_anchor.btm,
-                        value_title_anchor.lft,
-                        value_title_anchor.rgt
+                        max(0, item_label_anchor.top -
+                            item_label_anchor.hgt * 0.25),
+                        min(self.hgt, next_item_label_anchor.btm +
+                            item_label_anchor.hgt * 0.25),
+                        max(0, value_title_anchor.lft -
+                            value_title_anchor.wid * 0.2),
+                        min(self.wid, value_title_anchor.rgt +
+                            value_title_anchor.wid * 0.2)
                     )
                 else:  # 沒有第二行
                     value_box = (
-                        item_label_anchor.top,
-                        item_label_anchor.btm,
-                        value_title_anchor.lft,
-                        value_title_anchor.rgt
+                        max(0, item_label_anchor.top -
+                            item_label_anchor.hgt * 0.25),
+                        min(self.hgt, item_label_anchor.btm +
+                            item_label_anchor.hgt * 0.25),
+                        max(0, value_title_anchor.lft -
+                            value_title_anchor.wid * 0.2),
+                        min(self.wid, value_title_anchor.rgt +
+                            value_title_anchor.wid * 0.2)
                     )
             else:  # 一般項目
                 value_box = (
-                    item_label_anchor.top,
-                    item_label_anchor.btm,
-                    value_title_anchor.lft,
-                    value_title_anchor.rgt
+                    max(0, item_label_anchor.top -
+                        item_label_anchor.hgt * 0.25),
+                    min(self.hgt, item_label_anchor.btm +
+                        item_label_anchor.hgt * 0.25),
+                    max(0, value_title_anchor.lft -
+                        value_title_anchor.wid * 0.2),
+                    min(self.wid, value_title_anchor.rgt +
+                        value_title_anchor.wid * 0.2)
                 )
 
             self.syslogger.debug(f'\n[{self.img_name}] value_box for key {
