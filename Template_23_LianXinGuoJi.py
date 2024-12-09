@@ -210,15 +210,22 @@ class Template_LianXinGuoJi(ParsingTemplate):
                         item_label_anchor.rgt
                     )
                     next_item_label, next_item_label_anchor = self.get_keyword(target_ocr_data, *new_item_box, r".+")
-                    
+                    self.syslogger.info(f'\n[{self.img_name}]  next_item_label: {next_item_label}, next_item_label_anchor: {next_item_label_anchor}')
                     # TODO: 優化
-                    if next_item_label is not None:
+                    if next_item_label is not None and next_item_label_anchor:
                         value_box = (
                             item_label_anchor.top, 
                             item_label_anchor.btm, 
                             value_title_anchor.lft, 
                             value_title_anchor.rgt
                         )
+                    elif next_item_label is None and next_item_label_anchor is None:
+                        value_box = (
+                        item_label_anchor.top,
+                        item_label_anchor.btm, 
+                        value_title_anchor.lft, 
+                        value_title_anchor.rgt
+                    )
                     else:
                         value_box = (
                             item_label_anchor.top, 
@@ -237,6 +244,9 @@ class Template_LianXinGuoJi(ParsingTemplate):
                     )
                 
                 values = self.get_keywords(target_ocr_data, *value_box, '.+')
+
+                if not values:
+                    continue
                 exam_value_str, exam_value_anchor = self.merge_boxes(values)
                 
                 if exam_value_str:  # 如果找到值
