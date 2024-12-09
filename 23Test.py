@@ -13,7 +13,7 @@ def _parse_update_category(self, target_ocr_data: dict):
     value_title_anchor.move_x(-value_title_anchor.wid * 0.25)
 
     # 處理檢驗項目
-    item_box = (0, self.hgt, 0, value_title_anchor.lft)
+    item_box = (0, self.hgt, 0, value_title_anchor.lft)  # 左側區域範圍，用於檢測項目名稱
     for key, keyinfo in self.retData.get_all_api_key_and_info():
         if keyinfo.regex is None:  # 如果該項目未設置正則表達式，跳過
             continue
@@ -27,18 +27,33 @@ def _parse_update_category(self, target_ocr_data: dict):
         self.syslogger.info(f'\n[{self.img_name}] item_label: {
                             item_label}, item_label_anchor: {item_label_anchor}')
 
-        if item_label is not None:
-            keyinfo.default_enable = True
+        if item_label is not None:  # 如果找到該檢測項目名稱
+            keyinfo.default_enable = True  # 將該項目標記為啟用
 
-            # 設置值框範圍
-            value_box = (
-                max(0, item_label_anchor.top - item_label_anchor.hgt * 0.5),
-                min(self.hgt, item_label_anchor.btm +
-                    item_label_anchor.hgt * 0.5),
-                max(0, value_title_anchor.lft - value_title_anchor.wid * 0.2),
-                min(self.wid, value_title_anchor.rgt +
-                    value_title_anchor.wid * 0.2)
-            )
+            # 根據是否為特殊項目設置範圍
+            if key in ["transparency", "hbeag", "hbsag"]:
+                # 特殊欄位，範圍擴大到兩行
+                value_box = (
+                    max(0, item_label_anchor.top - item_label_anchor.hgt * 0.5),
+                    min(self.hgt, item_label_anchor.btm +
+                        item_label_anchor.hgt * 2.5),
+                    max(0, value_title_anchor.lft -
+                        value_title_anchor.wid * 0.2),
+                    min(self.wid, value_title_anchor.rgt +
+                        value_title_anchor.wid * 0.2)
+                )
+            else:
+                # 一般欄位，範圍限制在一行
+                value_box = (
+                    max(0, item_label_anchor.top - item_label_anchor.hgt * 0.5),
+                    min(self.hgt, item_label_anchor.btm +
+                        item_label_anchor.hgt * 0.5),
+                    max(0, value_title_anchor.lft -
+                        value_title_anchor.wid * 0.2),
+                    min(self.wid, value_title_anchor.rgt +
+                        value_title_anchor.wid * 0.2)
+                )
+
             self.syslogger.debug(f'\n[{self.img_name}] value_box for key {
                                  key}: {value_box}')
 
@@ -48,6 +63,7 @@ def _parse_update_category(self, target_ocr_data: dict):
                                        key} in value_box: {value_box}')
                 continue
 
+            # 合併值
             exam_value_str, exam_value_anchor = self.merge_boxes(values)
             self.syslogger.debug(f'\n[{self.img_name}] Merged value: {
                                  exam_value_str}, anchor: {exam_value_anchor}')
