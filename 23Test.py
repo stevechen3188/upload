@@ -30,28 +30,36 @@ def _parse_update_category(self, target_ocr_data: dict):
         if item_label is not None:  # 如果找到該檢測項目名稱
             keyinfo.default_enable = True  # 將該項目標記為啟用
 
-            # 根據是否為特殊項目設置範圍
-            if key in ["transparency", "hbeag", "hbsag"]:
-                # 特殊欄位，範圍擴大到兩行
-                value_box = (
-                    max(0, item_label_anchor.top - item_label_anchor.hgt * 0.5),
-                    min(self.hgt, item_label_anchor.btm +
-                        item_label_anchor.hgt * 2.5),
-                    max(0, value_title_anchor.lft -
-                        value_title_anchor.wid * 0.2),
-                    min(self.wid, value_title_anchor.rgt +
-                        value_title_anchor.wid * 0.2)
+            # 設置範圍
+            if key in ["transparency", "hbeag", "hbsag"]:  # 特殊處理項目
+                new_item_box = (
+                    item_label_anchor.btm,
+                    item_label_anchor.btm + item_label_anchor.hgt,
+                    item_label_anchor.lft - item_label_anchor.wid / 10,
+                    item_label_anchor.rgt
                 )
-            else:
-                # 一般欄位，範圍限制在一行
+                next_item_label, next_item_label_anchor = self.get_keyword(
+                    target_ocr_data, *new_item_box, r".+")
+                if next_item_label is not None and next_item_label_anchor:
+                    value_box = (
+                        item_label_anchor.top,
+                        next_item_label_anchor.btm,
+                        value_title_anchor.lft,
+                        value_title_anchor.rgt
+                    )
+                else:
+                    value_box = (
+                        item_label_anchor.top,
+                        item_label_anchor.btm + item_label_anchor.hgt * 2,
+                        value_title_anchor.lft,
+                        value_title_anchor.rgt
+                    )
+            else:  # 一般項目
                 value_box = (
-                    max(0, item_label_anchor.top - item_label_anchor.hgt * 0.5),
-                    min(self.hgt, item_label_anchor.btm +
-                        item_label_anchor.hgt * 0.5),
-                    max(0, value_title_anchor.lft -
-                        value_title_anchor.wid * 0.2),
-                    min(self.wid, value_title_anchor.rgt +
-                        value_title_anchor.wid * 0.2)
+                    item_label_anchor.top,
+                    item_label_anchor.btm,
+                    value_title_anchor.lft,
+                    value_title_anchor.rgt
                 )
 
             self.syslogger.debug(f'\n[{self.img_name}] value_box for key {
