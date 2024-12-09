@@ -30,51 +30,40 @@ def _parse_update_category(self, target_ocr_data: dict):
         if item_label is not None:  # 如果找到該檢測項目名稱
             keyinfo.default_enable = True  # 將該項目標記為啟用
 
-            # 設置範圍
+        # 設置範圍
         if key in ["transparency", "hbeag", "hbsag"]:  # 特殊處理項目
-            # 優化的範圍設置
+            # 判斷下一行是否有值
             new_item_box = (
-                max(0, item_label_anchor.btm),  # 下邊界從當前項目底部開始
-                min(self.hgt, item_label_anchor.btm + \
-                    item_label_anchor.hgt * 1.5),  # 限制範圍擴展到 1.5 行
-                max(0, item_label_anchor.lft - \
-                    item_label_anchor.wid / 8),  # 左側稍微擴展
-                min(self.wid, item_label_anchor.rgt + \
-                    item_label_anchor.wid / 8)  # 右側稍微擴展
+                item_label_anchor.btm,
+                item_label_anchor.btm + item_label_anchor.hgt,
+                item_label_anchor.lft - item_label_anchor.wid / 10,
+                item_label_anchor.rgt
             )
             next_item_label, next_item_label_anchor = self.get_keyword(
                 target_ocr_data, *new_item_box, r".+")
 
-            # 如果有下一行，擴展範圍
+            # 如果有下一行，或者是單行項目
             if next_item_label is not None and next_item_label_anchor:
                 value_box = (
-                    max(0, item_label_anchor.top -
-                        item_label_anchor.hgt * 0.1),  # 上邊界稍微向上擴展
-                    next_item_label_anchor.btm,  # 下邊界為下一行的底部
-                    max(0, value_title_anchor.lft - \
-                        value_title_anchor.wid * 0.1),  # 左邊界稍微擴展
-                    min(self.wid, value_title_anchor.rgt + \
-                        value_title_anchor.wid * 0.1)  # 右邊界稍微擴展
+                    item_label_anchor.top,
+                    item_label_anchor.btm,  # 只抓取當前行
+                    value_title_anchor.lft,
+                    value_title_anchor.rgt
                 )
-            else:  # 單行情況
+            else:  # 沒有下一行，且是特殊項目，抓取兩行
                 value_box = (
-                    max(0, item_label_anchor.top -
-                        item_label_anchor.hgt * 0.1),  # 上邊界稍微向上擴展
-                    item_label_anchor.btm,  # 下邊界為當前項目底部
-                    max(0, value_title_anchor.lft - \
-                        value_title_anchor.wid * 0.1),  # 左邊界稍微擴展
-                    min(self.wid, value_title_anchor.rgt + \
-                        value_title_anchor.wid * 0.1)  # 右邊界稍微擴展
+                    item_label_anchor.top,
+                    item_label_anchor.btm + item_label_anchor.hgt * 1.5,  # 抓取到下一行
+                    value_title_anchor.lft,
+                    value_title_anchor.rgt
                 )
         else:  # 一般項目
+            # 默認只抓取一行
             value_box = (
-                max(0, item_label_anchor.top -
-                    item_label_anchor.hgt * 0.1),  # 上邊界稍微向上擴展
-                item_label_anchor.btm,  # 下邊界為當前項目底部
-                max(0, value_title_anchor.lft - \
-                    value_title_anchor.wid * 0.1),  # 左邊界稍微擴展
-                min(self.wid, value_title_anchor.rgt + \
-                    value_title_anchor.wid * 0.1)  # 右邊界稍微擴展
+                item_label_anchor.top,
+                item_label_anchor.btm,
+                value_title_anchor.lft,
+                value_title_anchor.rgt
             )
 
             self.syslogger.debug(f'\n[{self.img_name}] value_box for key {
